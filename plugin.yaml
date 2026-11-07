@@ -1,0 +1,50 @@
+name: grokbot-staff
+version: "0.1.0"
+manifest_version: 2
+api_version: 1
+description: >-
+  A chief-of-staff and a team of specialists inside Hermes, plus an optional,
+  fail-closed bridge that hands long-running work to your own Grok Bot via a
+  webhook routine or a shared inbox folder.
+author: grokbot-staff contributors
+license: MIT
+homepage: https://github.com/OWNER/grokbot-staff
+tags: [agents, delegation, team, grok-bot, chief-of-staff]
+provides_tools:
+  - staff_assign
+  - staff_status
+  - grokbot_delegate
+  - grokbot_collect
+  - grokbot_status
+provides_hooks: []
+config_schema:
+  specialists:
+    type: list
+    default: []
+    label: Specialists
+    description: >-
+      Optional JSON list replacing the default team. Each item:
+      {"id": "saas", "title": "SaaS analyst", "focus": "pricing, GTM", "prompt": "...", "profile": ""}.
+      Leave empty to use the built-in team (chief, saas, design, vision-agents, computer-vision, x).
+  grokbot_webhook_url:
+    type: secret
+    env: GROKBOT_STAFF_WEBHOOK_URL
+    label: Grok Bot webhook URL
+    description: >-
+      URL of a webhook routine you created in your own Grok Bot. Handoffs are POSTed
+      here as JSON. https only (http allowed for localhost). Stored as a secret, never logged.
+  grokbot_inbox_dir:
+    type: str
+    default: ""
+    label: Grok Bot inbox folder
+    description: >-
+      Optional folder (e.g. a synced/shared folder) where handoffs are written to
+      handoffs/<id>.json and results are read from results/<id>.json|.md|.txt.
+  webhook_timeout_seconds:
+    type: int
+    default: 15
+    label: Webhook timeout (seconds)
+  max_output_tokens:
+    type: int
+    default: 1200
+    label: Max tokens per specialist answer
