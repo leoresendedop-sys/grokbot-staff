@@ -8,7 +8,7 @@ description: >-
   webhook routine or a shared inbox folder.
 author: grokbot-staff contributors
 license: MIT
-homepage: https://github.com/OWNER/grokbot-staff
+homepage: https://github.com/leoresendedop-sys/grokbot-staff
 tags: [agents, delegation, team, grok-bot, chief-of-staff]
 provides_tools:
   - staff_assign

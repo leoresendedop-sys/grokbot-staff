@@ -25,7 +25,7 @@ It does not import or migrate anything. It does not call any Grok Bot API either
 ## Install
 
 ```bash
-hermes plugins install OWNER/grokbot-staff --enable
+hermes plugins install leoresendedop-sys/grokbot-staff --enable
 # or, from a checkout:
 ln -s "$PWD" ~/.hermes/plugins/grokbot-staff && hermes plugins enable grokbot-staff
 ```
