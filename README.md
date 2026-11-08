@@ -2,6 +2,8 @@
 
 **Grok is my friend** (`grokbot-staff`)
 
+![G.I.M.F. — Grok is my friend](docs/gimf-thumbnail-ascii.jpg)
+
 **A chief-of-staff and a specialist team inside Hermes, plus an optional bridge that hands long jobs to your own Grok Bot.**
 
 Two halves:
