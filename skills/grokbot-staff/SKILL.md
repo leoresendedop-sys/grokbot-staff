@@ -14,7 +14,7 @@ description: G.I.M.F. (Grok is my friend). Run a chief-of-staff + specialist tea
 3. Summarise results for the user and list job ids. `staff_status` shows the roster and recent jobs;
    `staff_status job_id=<id>` shows one answer in full.
 
-Default team: chief, saas, design, vision-agents, computer-vision, x. The user can replace it in
+Default team: chief, research, design, writing, product, engineering. The user can replace it in
 Settings -> Plugins -> grokbot-staff -> Specialists (JSON list).
 
 ## Grok Bot handoff (optional)

@@ -80,7 +80,7 @@ def make(settings=None, secret=None, llm=None, opener=None):
 class RosterTests(unittest.TestCase):
     def test_defaults(self):
         ids = [s["id"] for s in specialists.load_specialists([])]
-        self.assertEqual(ids, ["chief", "saas", "design", "vision-agents", "computer-vision", "x"])
+        self.assertEqual(ids, ["chief", "research", "design", "writing", "product", "engineering"])
 
     def test_custom_json_and_invalid_dropped(self):
         raw = json.dumps([{"id": "legal", "title": "Legal", "prompt": "p"}, {"id": "BAD ID"}, "x"])
@@ -99,7 +99,7 @@ class StaffTests(unittest.TestCase):
         self.assertTrue(out["ok"])
         self.assertIn("grokbot-staff.design", out["output"])
         system = llm.calls[0][0][0]["content"]
-        self.assertIn("Design researcher", system)
+        self.assertIn("Designer", system)
         job = json.loads(st.staff_status({"job_id": out["job_id"]}))["job"]
         self.assertEqual(job["status"], "done")
 
@@ -111,7 +111,7 @@ class StaffTests(unittest.TestCase):
 
     def test_llm_failure_never_raises(self):
         st, _ = make(llm=FakeLLM(fail=True))
-        out = json.loads(st.staff_assign({"specialist": "saas", "task": "t"}))
+        out = json.loads(st.staff_assign({"specialist": "research", "task": "t"}))
         self.assertFalse(out["ok"])
         self.assertEqual(json.loads(st.staff_status({"job_id": out["job_id"]}))["job"]["status"], "failed")
 
@@ -128,7 +128,7 @@ class StaffTests(unittest.TestCase):
     def test_slash_staff(self):
         st, _ = make()
         self.assertIn("chief", st.slash_staff(""))
-        self.assertTrue(json.loads(st.slash_staff("x what is trending"))["ok"])
+        self.assertTrue(json.loads(st.slash_staff("research what is trending"))["ok"])
 
 
 class BridgeTests(unittest.TestCase):
@@ -143,12 +143,12 @@ class BridgeTests(unittest.TestCase):
         op = FakeOpener()
         url = "https://hooks.example.com/routine/SECRET-TOKEN?k=1"
         st, _ = make(secret=url, opener=op)
-        out = json.loads(st.grokbot_delegate({"task": "deep research", "specialist": "saas"}))
+        out = json.loads(st.grokbot_delegate({"task": "deep research", "specialist": "research"}))
         self.assertTrue(out["ok"])
         req = op.requests[0][0]
         body = json.loads(req.data)
         self.assertEqual(set(body), {"id", "created_at", "specialist", "title", "task", "reply_hint"})
-        self.assertEqual(body["specialist"], "saas")
+        self.assertEqual(body["specialist"], "research")
         dumped = json.dumps(out) + st.grokbot_status({})
         self.assertNotIn("SECRET-TOKEN", dumped)
 

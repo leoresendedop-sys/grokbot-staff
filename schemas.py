@@ -3,8 +3,8 @@
 STAFF_ASSIGN = {
     "name": "staff_assign",
     "description": (
-        "Assign a task to one specialist on the local staff team (chief, saas, design, "
-        "vision-agents, computer-vision, x, or user-defined). The specialist answers with its "
+        "Assign a task to one specialist on the local staff team (chief, research, design, "
+        "writing, product, engineering, or user-defined). The specialist answers with its "
         "own system prompt via the user's current model; the job is saved and listed by "
         "staff_status. Use specialist='chief' to get a plan that splits work across the team."
     ),

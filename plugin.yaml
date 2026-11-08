@@ -1,5 +1,5 @@
 name: grokbot-staff
-version: "0.1.1"
+version: "0.1.2"
 manifest_version: 2
 api_version: 1
 description: >-
@@ -24,8 +24,8 @@ config_schema:
     label: Specialists
     description: >-
       Optional JSON list replacing the default team. Each item:
-      {"id": "saas", "title": "SaaS analyst", "focus": "pricing, GTM", "prompt": "...", "profile": ""}.
-      Leave empty to use the built-in team (chief, saas, design, vision-agents, computer-vision, x).
+      {"id": "research", "title": "Researcher", "focus": "investigation, sources", "prompt": "...", "profile": ""}.
+      Leave empty to use the built-in team (chief, research, design, writing, product, engineering).
   grokbot_webhook_url:
     type: secret
     env: GROKBOT_STAFF_WEBHOOK_URL

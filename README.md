@@ -9,7 +9,7 @@
 Two halves:
 
 1. **Local staff** works with zero configuration. A `chief` breaks work down and routes it to
-   specialists (`saas`, `design`, `vision-agents`, `computer-vision`, `x`). Each specialist answers with
+   specialists (`research`, `design`, `writing`, `product`, `engineering`). Each specialist answers with
    its own system prompt on whatever model you already use in Hermes (`ctx.llm`). Jobs are saved, and a Desktop
    pane shows the team and its recent work. You can replace the team from Settings without touching code.
 2. **Grok Bot bridge** is optional and fails closed. Hermes hands a task *to* your own Grok Bot, a cloud
@@ -74,7 +74,7 @@ Custom team example:
 A handoff is sent as a POST to your webhook and written to `<inbox>/handoffs/<id>.json`:
 
 ```json
-{"id": "gbs-1a2b3c4d5e6f", "created_at": "2026-11-07T15:00:00Z", "specialist": "saas",
+{"id": "gbs-1a2b3c4d5e6f", "created_at": "2026-11-07T15:00:00Z", "specialist": "research",
  "title": "Pricing teardown", "task": "...", "reply_hint": "..."}
 ```
 
@@ -84,7 +84,7 @@ If it can't write files, paste its answer back with `grokbot_collect result=...`
 ## Demo script (under 90 s)
 
 1. **0–10 s.** Hermes Desktop with the G.I.M.F. pane open: "Grok is my friend."
-2. **10–30 s.** `/staff chief plan a launch of a livestock-monitoring app`. The chief returns a plan that assigns items to saas, design, computer-vision and x.
+2. **10–30 s.** `/staff chief plan a launch of a livestock-monitoring app`. The chief returns a plan that assigns items to research, design, writing, product and engineering.
 3. **30–45 s.** `/staff design landing hero ideas with Three.js`. The answer streams in, and the job appears in the pane.
 4. **45–65 s.** "Now the heavy research goes to my cloud coworker": `/grokbot deep market scan of cattle CV vendors in Brazil`. Job `gbs-…` shows up under *Pending Grok Bot handoffs*, and Grok Bot's webhook routine fires.
 5. **65–80 s.** Grok Bot drops `results/gbs-….md` into the shared folder, then `/grokbot collect gbs-…`. The result is shown and the job is marked done.
