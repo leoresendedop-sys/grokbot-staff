@@ -1,6 +1,6 @@
 ---
 name: grokbot-staff
-description: Run a chief-of-staff + specialist team inside Hermes, and hand long jobs to the user's own Grok Bot.
+description: G.I.M.F. (Grok is my friend). Run a chief-of-staff + specialist team inside Hermes, and hand long jobs to the user's own Grok Bot.
 ---
 
 # grokbot-staff playbook

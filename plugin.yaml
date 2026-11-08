@@ -1,11 +1,11 @@
 name: grokbot-staff
-version: "0.1.0"
+version: "0.1.1"
 manifest_version: 2
 api_version: 1
 description: >-
-  A chief-of-staff and a team of specialists inside Hermes, plus an optional,
-  fail-closed bridge that hands long-running work to your own Grok Bot via a
-  webhook routine or a shared inbox folder.
+  G.I.M.F. (Grok is my friend): a chief-of-staff and a team of specialists
+  inside Hermes, plus an optional, fail-closed bridge that hands long-running
+  work to your own Grok Bot via a webhook routine or a shared inbox folder.
 author: grokbot-staff contributors
 license: MIT
 homepage: https://github.com/leoresendedop-sys/grokbot-staff

@@ -51,6 +51,8 @@ function StaffPane(props) {
   return jsxs('div', {
     className: 'flex h-full flex-col gap-3 overflow-auto p-3 text-sm',
     children: [
+      jsx('div', { className: 'font-semibold', children: 'G.I.M.F.' }),
+      jsx('div', { className: 'text-xs text-(--ui-text-tertiary)', children: 'Grok is my friend' }),
       jsx('div', { className: 'font-semibold', children: 'Team' }),
       jsx('div', { className: 'grid gap-2', children:
         data.team.map(s => jsx(Card, { key: s.id, title: s.title + ' · ' + s.id, sub: s.focus })) }),
@@ -82,12 +84,12 @@ function StaffPane(props) {
 
 export default {
   id: ID,
-  name: 'Grok Bot Staff',
+  name: 'G.I.M.F.',
   register(ctx) {
     ctx.register({
       id: 'pane',
       area: 'panes',
-      title: 'staff',
+      title: 'G.I.M.F.',
       data: { placement: 'right', width: '300px' },
       render: () => jsx(StaffPane, { ctx })
     })

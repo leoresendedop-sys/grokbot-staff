@@ -1,4 +1,6 @@
-# grokbot-staff
+# G.I.M.F.
+
+**Grok is my friend** (`grokbot-staff`)
 
 **A chief-of-staff and a specialist team inside Hermes, plus an optional bridge that hands long jobs to your own Grok Bot.**
 
@@ -30,7 +32,7 @@ hermes plugins install leoresendedop-sys/grokbot-staff --enable
 ln -s "$PWD" ~/.hermes/plugins/grokbot-staff && hermes plugins enable grokbot-staff
 ```
 
-On Desktop, turn on the **Grok Bot Staff** pane under Capabilities → Plugins. Like every desktop half, it starts disabled.
+On Desktop, turn on the **G.I.M.F.** pane under Capabilities → Plugins. Like every desktop half, it starts disabled.
 
 ## Tools, commands, surfaces
 
@@ -79,7 +81,7 @@ If it can't write files, paste its answer back with `grokbot_collect result=...`
 
 ## Demo script (under 90 s)
 
-1. **0–10 s.** Hermes Desktop with the Staff pane open: "Hermes just got a staff."
+1. **0–10 s.** Hermes Desktop with the G.I.M.F. pane open: "Grok is my friend."
 2. **10–30 s.** `/staff chief plan a launch of a livestock-monitoring app`. The chief returns a plan that assigns items to saas, design, computer-vision and x.
 3. **30–45 s.** `/staff design landing hero ideas with Three.js`. The answer streams in, and the job appears in the pane.
 4. **45–65 s.** "Now the heavy research goes to my cloud coworker": `/grokbot deep market scan of cattle CV vendors in Brazil`. Job `gbs-…` shows up under *Pending Grok Bot handoffs*, and Grok Bot's webhook routine fires.
