@@ -32,15 +32,46 @@ specialists = sys.modules["grokbot_staff_under_test.specialists"]
 delegation = sys.modules["grokbot_staff_under_test.delegation"]
 
 
+PASS = json.dumps({"pass": True, "failed": [], "expected": "", "observed": "all shown", "scope": "",
+                   "dead_ends": []})
+APPROVE = json.dumps({"verdict": "approve", "reasons": ["meets the contract"], "required_changes": []})
+
+
+def FAIL(crit="has a title", dead=None):
+    return json.dumps({"pass": False, "failed": [crit], "expected": "a title line",
+                       "observed": "no title", "scope": "first line", "dead_ends": dead or []})
+
+
 class FakeLLM:
-    def __init__(self, fail=False):
+    """Scripted host LLM. ``script`` maps a purpose suffix ('contract', 'verify', 'review', or a
+    specialist id) to a list of replies (popped in order; the last one repeats)."""
+
+    def __init__(self, fail=False, script=None):
         self.calls, self.fail = [], fail
+        self.script = {k: list(v) for k, v in (script or {}).items()}
+
+    def by(self, suffix):
+        return [c for c in self.calls if c[1].get("purpose") == "grokbot-staff." + suffix]
 
     def complete(self, messages, **kw):
         self.calls.append((messages, kw))
         if self.fail:
             raise RuntimeError("provider down")
-        return types.SimpleNamespace(text="ANSWER from " + kw.get("purpose", ""))
+        purpose = kw.get("purpose", "")
+        key = purpose.split(".", 1)[-1]
+        queue = self.script.get(key)
+        if queue:
+            text = queue.pop(0) if len(queue) > 1 else queue[0]
+        elif key == "contract":
+            text = '["The answer names at least one idea", "It ends with Next steps"]'
+        elif key == "verify":
+            text = PASS
+        elif key == "review":
+            text = APPROVE
+        else:
+            n = len(self.calls)
+            text = f"ANSWER from {purpose}. Draft {n}: " + " ".join(f"idea-{n}-{i}" for i in range(8))
+        return types.SimpleNamespace(text=text)
 
 
 class FakeResp:
@@ -98,7 +129,7 @@ class StaffTests(unittest.TestCase):
         out = json.loads(st.staff_assign({"specialist": "design", "task": "hero ideas"}))
         self.assertTrue(out["ok"])
         self.assertIn("grokbot-staff.design", out["output"])
-        system = llm.calls[0][0][0]["content"]
+        system = llm.by("design")[0][0][0]["content"]
         self.assertIn("Designer", system)
         job = json.loads(st.staff_status({"job_id": out["job_id"]}))["job"]
         self.assertEqual(job["status"], "done")
@@ -129,6 +160,193 @@ class StaffTests(unittest.TestCase):
         st, _ = make()
         self.assertIn("chief", st.slash_staff(""))
         self.assertTrue(json.loads(st.slash_staff("research what is trending"))["ok"])
+
+
+class ContractTests(unittest.TestCase):
+    harness = sys.modules["grokbot_staff_under_test.harness"]
+
+    def test_parse_full_contract_top_level_wins(self):
+        c = self.harness.parse_contract({
+            "task": "Write a tagline", "contract": {"task": "old", "deliverable": "one line",
+                                                   "constraints": "no emoji\nunder 60 chars"},
+            "inputs": ["brand: Pixel Habit"], "done_when": '["under 60 chars", "mentions habits"]',
+            "context": "audience: designers"})
+        self.assertEqual(c["task"], "Write a tagline")
+        self.assertEqual(c["deliverable"], "one line")
+        self.assertEqual(c["constraints"], ["no emoji", "under 60 chars"])
+        self.assertEqual(c["inputs"], ["brand: Pixel Habit", "audience: designers"])
+        self.assertEqual(c["done_when"], ["under 60 chars", "mentions habits"])
+        self.assertEqual(c["done_when_source"], "caller")
+
+    def test_bulleted_done_when_and_json_string_contract(self):
+        c = self.harness.parse_contract({"contract": json.dumps({"task": "t", "done_when": "- a\n2. b\n"})})
+        self.assertEqual(c["task"], "t")
+        self.assertEqual(c["done_when"], ["a", "b"])
+
+    def test_caller_done_when_skips_chief_draft(self):
+        llm = FakeLLM()
+        st, _ = make(llm=llm)
+        out = json.loads(st.staff_assign({"specialist": "writing", "task": "t", "done_when": ["x holds"]}))
+        self.assertEqual(out["status"], "done")
+        self.assertEqual(out["done_when"], ["x holds"])
+        self.assertEqual(llm.by("contract"), [])
+
+    def test_progress_file_survives_restart(self):
+        st, tmp = make()
+        out = json.loads(st.staff_assign({"specialist": "research", "task": "t"}))
+        # a brand-new Staff on the same data dir (session restart) still sees the job files
+        st2 = tools.Staff(get_config=lambda k, d=None: d, get_secret=lambda n: None,
+                          store=store_mod.JobStore(tmp / "data"), llm=FakeLLM())
+        job = json.loads(st2.staff_status({"job_id": out["job_id"]}))["job"]
+        self.assertEqual(set(job["progress"]), {"goal", "tried", "learned", "next", "never"})
+        self.assertEqual(job["progress"]["goal"], "t")
+        self.assertTrue((tmp / "data" / "jobs" / out["job_id"] / "progress.json").is_file())
+
+
+class LegacyTests(unittest.TestCase):
+    def test_legacy_task_only_call(self):
+        llm = FakeLLM()
+        st, _ = make(llm=llm)
+        out = json.loads(st.staff_assign({"specialist": "product", "task": "scope an MVP"}))
+        self.assertTrue(out["ok"])
+        self.assertEqual(out["status"], "done")
+        self.assertIn("grokbot-staff.product", out["output"])
+        self.assertEqual(out["done_when_source"], "chief")
+        self.assertEqual(len(out["done_when"]), 2)
+        self.assertEqual(len(llm.by("contract")), 1)
+        job = json.loads(st.staff_status({"job_id": out["job_id"]}))["job"]
+        self.assertEqual(job["contract"]["done_when_source"], "chief")
+
+    def test_unparsable_chief_draft_falls_back(self):
+        st, _ = make(llm=FakeLLM(script={"contract": ["sure! here you go"]}))
+        out = json.loads(st.staff_assign({"specialist": "design", "task": "t"}))
+        self.assertEqual(out["done_when_source"], "fallback")
+        self.assertTrue(out["done_when"])
+
+    def test_quality_loop_off_is_single_shot(self):
+        llm = FakeLLM()
+        st, _ = make(settings={"quality_loop": False}, llm=llm)
+        out = json.loads(st.staff_assign({"specialist": "design", "task": "t", "context": "c"}))
+        self.assertEqual(out["status"], "done")
+        self.assertEqual(len(llm.calls), 1)
+        self.assertIn("Context:", llm.calls[0][0][1]["content"])
+
+
+class LoopTests(unittest.TestCase):
+    def test_stops_on_pass(self):
+        llm = FakeLLM(script={"verify": [FAIL(), PASS]})
+        st, _ = make(llm=llm)
+        out = json.loads(st.staff_assign({"specialist": "writing", "task": "t", "done_when": ["has a title"]}))
+        self.assertEqual(out["status"], "done")
+        self.assertEqual(out["attempts"], 2)
+        self.assertEqual(len(llm.by("writing")), 2)
+        self.assertEqual(len(llm.by("review")), 1)
+        # attempt 2 got attempt 1's structured feedback
+        second = llm.by("writing")[1][0][1]["content"]
+        self.assertIn("Failed criteria: has a title", second)
+        self.assertIn("Observed: no title", second)
+
+    def test_stops_on_identical_output(self):
+        llm = FakeLLM(script={"writing": ["Same answer.", "  same   ANSWER!! "], "verify": [FAIL()]})
+        st, _ = make(llm=llm)
+        out = json.loads(st.staff_assign({"specialist": "writing", "task": "t", "done_when": ["has a title"]}))
+        self.assertEqual(out["status"], "needs_human")
+        self.assertFalse(out["done"])
+        self.assertEqual(out["attempts"], 2)
+        self.assertEqual(len(llm.by("verify")), 1)  # the repeat is not re-verified
+        self.assertEqual(out["history"][-1]["stopped"], "identical_output")
+
+    def test_near_identical_helper(self):
+        pl = sys.modules["grokbot_staff_under_test.pipeline"]
+        base = "The plan has five steps: research, design, write, build and launch the product. " * 4
+        self.assertTrue(pl.near_identical(base, base.replace("five", "5ive")))
+        self.assertFalse(pl.near_identical(base, "A completely different deliverable about pricing."))
+
+    def test_exhaustion_marks_needs_human_with_history(self):
+        llm = FakeLLM(script={"verify": [FAIL(dead=["listing colors only"])]})
+        st, _ = make(settings={"max_attempts": 3}, llm=llm)
+        out = json.loads(st.staff_assign({"specialist": "design", "task": "t", "done_when": ["has a title"]}))
+        self.assertTrue(out["ok"])
+        self.assertEqual(out["status"], "needs_human")
+        self.assertFalse(out["done"])
+        self.assertEqual(out["attempts"], 3)
+        self.assertEqual(len(out["history"]), 3)
+        self.assertEqual(out["history"][0]["failed"], ["has a title"])
+        self.assertEqual(llm.by("review"), [])
+        job = json.loads(st.staff_status({"job_id": out["job_id"]}))["job"]
+        self.assertEqual(job["status"], "needs_human")
+        self.assertEqual(job["progress"]["never"], ["listing colors only"])
+        listed = json.loads(st.staff_status({}))
+        self.assertIn(out["job_id"], listed["needs_human"])
+        self.assertEqual(listed["jobs"][0]["attempts"], 3)
+
+    def test_unparsable_verifier_fails_closed(self):
+        st, _ = make(settings={"max_attempts": 2}, llm=FakeLLM(script={"verify": ["Looks great, ship it!"]}))
+        out = json.loads(st.staff_assign({"specialist": "design", "task": "t"}))
+        self.assertEqual(out["status"], "needs_human")
+
+    def test_self_report_is_not_evidence(self):
+        pl = sys.modules["grokbot_staff_under_test.pipeline"]
+        # pass=true while listing a failed criterion is not a pass
+        fb = pl.parse_feedback(json.dumps({"pass": True, "failed": ["has a title"]}), ["has a title"])
+        self.assertFalse(fb["pass"])
+        self.assertIn("self-report", pl.VERIFIER)
+        # the author's own claims never reach the verifier
+        llm = FakeLLM(script={"writing": ["Deliverable body\n\n## Author notes\nI verified every criterion."]})
+        st, _ = make(llm=llm)
+        json.loads(st.staff_assign({"specialist": "writing", "task": "t", "done_when": ["x"]}))
+        self.assertNotIn("I verified every criterion", json.dumps(llm.by("verify")[0][0]))
+
+    def test_review_revise_feeds_back_then_needs_human(self):
+        revise = json.dumps({"verdict": "revise", "reasons": ["too vague"], "required_changes": ["add numbers"]})
+        llm = FakeLLM(script={"review": [revise]})
+        st, _ = make(settings={"max_attempts": 2}, llm=llm)
+        out = json.loads(st.staff_assign({"specialist": "product", "task": "t", "done_when": ["x"]}))
+        self.assertEqual(out["status"], "needs_human")
+        self.assertEqual(out["review"]["verdict"], "revise")
+        self.assertIn("add numbers", llm.by("product")[1][0][1]["content"])
+
+    def test_resume_needs_human_job(self):
+        llm = FakeLLM(script={"verify": [FAIL(), FAIL(), PASS]})
+        st, _ = make(settings={"max_attempts": 2}, llm=llm)
+        first = json.loads(st.staff_assign({"specialist": "design", "task": "t", "done_when": ["has a title"]}))
+        self.assertEqual(first["status"], "needs_human")
+        again = json.loads(st.slash_staff("resume " + first["job_id"]))
+        self.assertEqual(again["status"], "done")
+        self.assertEqual(again["attempts"], 3)
+
+
+class GraphTests(unittest.TestCase):
+    def test_reviewer_isolation(self):
+        notes = "SECRET-AUTHOR-REASONING: I skipped the pricing part"
+        llm = FakeLLM(script={"engineering": ["First draft without a heading, endpoints only.\n\n## Author notes\n" + notes,
+                                              "Final deliverable text.\n\n## Author notes\n" + notes],
+                              "verify": [FAIL(), PASS]})
+        st, _ = make(llm=llm)
+        out = json.loads(st.staff_assign({"specialist": "engineering", "task": "plan the API",
+                                          "done_when": ["has a title"]}))
+        self.assertEqual(out["status"], "done")
+        review_msgs = llm.by("review")[0][0]
+        blob = json.dumps(review_msgs)
+        self.assertNotIn("SECRET-AUTHOR-REASONING", blob)
+        self.assertNotIn("Author notes", blob)
+        self.assertNotIn("Engineer", blob)              # no specialist system prompt
+        self.assertNotIn("Observed: no title", blob)    # no verifier feedback / history
+        self.assertIn("plan the API", blob)             # contract is there
+        self.assertIn("Final deliverable text.", blob)  # deliverable is there
+        self.assertEqual([m["role"] for m in review_msgs], ["system", "user"])
+        # notes are kept in the job files for the human, not delivered
+        self.assertNotIn("SECRET-AUTHOR-REASONING", out["output"])
+        job = json.loads(st.staff_status({"job_id": out["job_id"]}))["job"]
+        self.assertEqual(job["review"]["verdict"], "approve")
+
+    def test_state_flows_through_files(self):
+        st, tmp = make()
+        out = json.loads(st.staff_assign({"specialist": "research", "task": "t", "done_when": ["x"]}))
+        d = tmp / "data" / "jobs" / out["job_id"]
+        for f in ("contract.json", "progress.json", "attempt-1.json", "review.json", "deliverable.md"):
+            self.assertTrue((d / f).is_file(), f)
+        self.assertEqual((d / "deliverable.md").read_text(), out["output"])
 
 
 class BridgeTests(unittest.TestCase):

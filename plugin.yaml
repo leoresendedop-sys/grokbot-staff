@@ -1,15 +1,17 @@
 name: grokbot-staff
-version: "0.1.2"
+version: "0.2.0"
 manifest_version: 2
 api_version: 1
 description: >-
   G.I.M.F. (Grok is my friend): a chief-of-staff and a team of specialists
-  inside Hermes, plus an optional, fail-closed bridge that hands long-running
+  inside Hermes. Every job runs on a task contract, is checked by a separate
+  verifier (bounded retries) and an independent reviewer before delivery, and
+  keeps a progress file that survives restarts. Plus an optional, fail-closed bridge that hands long-running
   work to your own Grok Bot via a webhook routine or a shared inbox folder.
 author: grokbot-staff contributors
 license: MIT
 homepage: https://github.com/leoresendedop-sys/grokbot-staff
-tags: [agents, delegation, team, grok-bot, chief-of-staff]
+tags: [agents, delegation, team, grok-bot, chief-of-staff, verification]
 provides_tools:
   - staff_assign
   - staff_status
@@ -48,3 +50,17 @@ config_schema:
     type: int
     default: 1200
     label: Max tokens per specialist answer
+  quality_loop:
+    type: bool
+    default: true
+    label: Verify and review every job
+    description: >-
+      Harness / Loop / Graph. When on, each answer is checked against the job's done_when
+      criteria by a separate verifier call and approved by an independent reviewer before it
+      is delivered. Turn off for the 0.1 single-answer behaviour (fewer model calls).
+  max_attempts:
+    type: int
+    default: 3
+    label: Max attempts per job
+    description: >-
+      How many production tries a job gets before it is marked needs_human (1-10).

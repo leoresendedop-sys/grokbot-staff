@@ -1,12 +1,18 @@
 """Tool schemas (what the model reads)."""
 
+_STR_LIST = {"type": "array", "items": {"type": "string"}}
+
 STAFF_ASSIGN = {
     "name": "staff_assign",
     "description": (
         "Assign a task to one specialist on the local staff team (chief, research, design, "
-        "writing, product, engineering, or user-defined). The specialist answers with its "
-        "own system prompt via the user's current model; the job is saved and listed by "
-        "staff_status. Use specialist='chief' to get a plan that splits work across the team."
+        "writing, product, engineering, or user-defined). Optionally pass a task contract "
+        "(inputs, deliverable, constraints, done_when). If done_when is missing the chief drafts "
+        "verifiable criteria first. The specialist's answer is checked by a separate verifier "
+        "against done_when (up to max_attempts tries with structured feedback), then by an "
+        "independent reviewer, before the job is marked done. If it cannot pass, the job is "
+        "marked needs_human with its history instead of claiming success. Use specialist='chief' "
+        "to get a plan that splits work across the team. Resume a job with resume_job_id."
     ),
     "parameters": {
         "type": "object",
@@ -14,16 +20,29 @@ STAFF_ASSIGN = {
             "specialist": {"type": "string", "description": "Specialist id, e.g. 'design'."},
             "task": {"type": "string", "description": "What the specialist should do."},
             "title": {"type": "string", "description": "Optional short title for the job."},
-            "context": {"type": "string", "description": "Optional extra context or material."},
+            "context": {"type": "string", "description": "Optional extra context or material (added to inputs)."},
+            "inputs": {**_STR_LIST, "description": "Optional contract inputs: facts, files, links the work must use."},
+            "deliverable": {"type": "string", "description": "Optional: what exactly must be handed back."},
+            "constraints": {**_STR_LIST, "description": "Optional constraints (scope, format, what not to touch)."},
+            "done_when": {**_STR_LIST, "description": (
+                "Optional list of verifiable acceptance criteria. Omit to let the chief draft them.")},
+            "contract": {"type": "object", "description": (
+                "Optional contract object with the same keys (task, inputs, deliverable, constraints, "
+                "done_when). Top-level arguments win.")},
+            "resume_job_id": {"type": "string", "description": (
+                "Optional: continue a needs_human or interrupted job from its progress file. "
+                "New done_when/constraints/context are merged into its contract.")},
         },
-        "required": ["specialist", "task"],
+        "required": ["specialist"],
     },
 }
 
 STAFF_STATUS = {
     "name": "staff_status",
     "description": (
-        "Show the staff roster and recent local jobs, or one job's full output when job_id is given."
+        "Show the staff roster and recent local jobs (status, attempts, review verdict, needs_human), "
+        "or one job in full when job_id is given: contract, progress file, every attempt's verifier "
+        "feedback, the review verdict and the deliverable."
     ),
     "parameters": {
         "type": "object",

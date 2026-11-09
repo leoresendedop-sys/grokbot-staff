@@ -61,8 +61,8 @@ def register(ctx):
         ctx.register_tool(name=name, toolset=TOOLSET, schema=schema, handler=handler)
 
     ctx.register_command("staff", staff.slash_staff,
-                         description="Staff team: list, assign (/staff design <task>), status",
-                         args_hint="[list|status [job_id]|<specialist> <task>]")
+                         description="Staff team: list, assign (/staff design <task>), status, resume",
+                         args_hint="[list|status [job_id]|resume <job_id>|<specialist> <task>]")
     ctx.register_command("grokbot", staff.slash_grokbot,
                          description="Hand work to your Grok Bot, or check/collect handoffs",
                          args_hint="[status|collect <job_id> [result]|<task>]")
