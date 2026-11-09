@@ -79,7 +79,7 @@ def post_webhook(url: str, payload: Dict[str, Any], timeout: float = 15.0,
     body = json.dumps(payload).encode("utf-8")
     req = urllib.request.Request(
         url, data=body, method="POST",
-        headers={"Content-Type": "application/json", "User-Agent": "grokbot-staff/0.1"},
+        headers={"Content-Type": "application/json", "User-Agent": "grokbot-staff/0.2"},
     )
     try:
         with (opener or _opener()).open(req, timeout=max(1.0, min(float(timeout), 120.0))) as resp:

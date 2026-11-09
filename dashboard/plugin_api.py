@@ -45,15 +45,30 @@ def _webhook_set() -> bool:
         return False
 
 
+def _loop(settings: dict) -> dict:
+    enabled = settings.get("quality_loop", True)
+    if isinstance(enabled, str):
+        enabled = enabled.strip().lower() not in ("0", "false", "no", "off", "")
+    try:
+        attempts = max(1, min(int(settings.get("max_attempts") or 3), 10))
+    except (TypeError, ValueError):
+        attempts = 3
+    return {"enabled": bool(enabled), "max_attempts": attempts}
+
+
 @router.get("/overview")
 async def overview():
     settings = _settings()
     roster = _specialists_module().load_specialists(settings.get("specialists", []))
     jobs = list(reversed(_jobs()))[:50]
-    slim = [{k: j.get(k) for k in ("id", "kind", "specialist", "title", "status", "created_at")} for j in jobs]
+    keys = ("id", "kind", "specialist", "title", "status", "created_at", "attempts", "max_attempts",
+            "review_verdict", "last_feedback", "reason")
+    slim = [{k: j.get(k) for k in keys} for j in jobs]
     return {
         "team": [{"id": s["id"], "title": s["title"], "focus": s["focus"]} for s in roster],
         "jobs": slim,
+        "needs_human": sum(1 for j in slim if j.get("kind") == "local" and j.get("status") == "needs_human"),
+        "loop": _loop(settings),
         "bridge": {"webhook_configured": _webhook_set(),
                    "inbox_dir": settings.get("grokbot_inbox_dir") or ""},
     }

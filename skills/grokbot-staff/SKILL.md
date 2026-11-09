@@ -9,9 +9,15 @@ description: G.I.M.F. (Grok is my friend). Run a chief-of-staff + specialist tea
 1. For a fuzzy or multi-part goal, call `staff_assign` with `specialist="chief"` first. It returns a plan
    that assigns work items to specialist ids.
 2. Run each work item with `staff_assign` (`specialist=<id>`, `task=<item>`, optional `context`).
+   Prefer a contract: pass `done_when` as 2-5 criteria a reader can check from the deliverable
+   alone, plus `constraints` / `deliverable` when they matter. Omit `done_when` and the chief drafts it.
+   Every answer is verified against `done_when` and independently reviewed before it is `done`.
    For parallel or tool-heavy work, use `delegate_task` instead; when the user has selected the
    `staff` delegation backend (`/delegation staff`), set `specialist` per task.
-3. Summarise results for the user and list job ids. `staff_status` shows the roster and recent jobs;
+3. If a job comes back `needs_human`, do NOT present it as finished. Show the user the failed
+   criteria from `history`, ask for what is missing, then call `staff_assign resume_job_id=<id>`
+   with sharper `done_when` or more `context`.
+4. Summarise results for the user and list job ids. `staff_status` shows the roster and recent jobs;
    `staff_status job_id=<id>` shows one answer in full.
 
 Default team: chief, research, design, writing, product, engineering. The user can replace it in
